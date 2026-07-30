@@ -70,6 +70,8 @@ const G = {
   currentRound: null,
   usedQuestions: { coupEnvoi: [], coupParCoup: [], coupFatal: [] },
   spectatorMode: false,
+  manageTab: 'envoi',
+  manageEditing: null,
 
   turnIndex: 0,
   turnLocked: false,
@@ -101,7 +103,7 @@ const G = {
 const $ = id => document.getElementById(id);
 
 const D = {
-  screen:  { home: $('home-screen'), game: $('game-screen') },
+  screen:  { home: $('home-screen'), game: $('game-screen'), manage: $('manage-screen') },
   overlay: { transition: $('transition-overlay'), victory: $('victory-overlay') },
 
   home: {
@@ -113,6 +115,7 @@ const D = {
     exp:   $('export-btn'),
     imp:   $('import-btn'),
     impFile: $('import-file'),
+    manageBtn: $('manage-btn'),
   },
 
   hdr: {
@@ -176,6 +179,18 @@ const D = {
   fullscreenBtn: $('fullscreen-btn'),
   spectatorToggle: $('spectator-toggle'),
   confettiCanvas: $('confetti-canvas'),
+
+  manage: {
+    back: $('manage-back-btn'),
+    exp: $('manage-export-btn'),
+    list: $('manage-list'),
+    form: $('manage-form'),
+    formTitle: $('manage-form-title'),
+    formFields: $('manage-form-fields'),
+    addBtn: $('manage-add-btn'),
+    cancelBtn: $('manage-cancel-btn'),
+    count: { envoi: $('mcount-envoi'), cpc: $('mcount-cpc'), fatal: $('mcount-fatal') },
+  },
 };
 
 // =============================================================
@@ -1092,6 +1107,258 @@ if (D.fullscreenBtn) D.fullscreenBtn.addEventListener('click', toggleFullscreen)
 
 // Spectateur
 if (D.spectatorToggle) D.spectatorToggle.addEventListener('click', toggleSpectator);
+
+// =============================================================
+// 12b. GESTION DES QUESTIONS
+// =============================================================
+function showManage() {
+  G.currentScreen = 'manage';
+  G.manageTab = 'envoi';
+  G.manageEditing = null;
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  D.screen.manage.classList.add('active');
+  renderManage();
+}
+
+function getManageBank() {
+  if (G.manageTab === 'envoi') return questionsCoupEnvoi;
+  if (G.manageTab === 'cpc') return questionsCoupParCoup;
+  return questionsCoupFatal;
+}
+
+function renderManage() {
+  renderManageTabs();
+  renderManageList();
+  renderManageForm();
+}
+
+function renderManageTabs() {
+  document.querySelectorAll('.manage-tab').forEach(tab => {
+    tab.classList.toggle('active', tab.dataset.tab === G.manageTab);
+  });
+  D.manage.count.envoi.textContent = questionsCoupEnvoi.length;
+  D.manage.count.cpc.textContent = questionsCoupParCoup.length;
+  D.manage.count.fatal.textContent = questionsCoupFatal.length;
+}
+
+function renderManageList() {
+  const bank = getManageBank();
+  const list = D.manage.list;
+  list.innerHTML = '';
+
+  if (!bank.length) {
+    list.innerHTML = '<p class="manage-empty">Aucune question dans cette catégorie.</p>';
+    return;
+  }
+
+  bank.forEach((q, i) => {
+    const card = document.createElement('div');
+    card.className = 'manage-card' + (G.manageEditing === i ? ' editing' : '');
+    card.dataset.index = i;
+
+    if (G.manageEditing === i) {
+      const fields = getManageFormFields(q);
+      fields.forEach(f => {
+        const row = document.createElement('div');
+        row.className = 'manage-field-row';
+        row.innerHTML = '<label>' + f.label + '</label>';
+        const inp = document.createElement('input');
+        inp.type = 'text';
+        inp.className = 'manage-input';
+        inp.value = f.value;
+        inp.dataset.field = f.key;
+        row.appendChild(inp);
+        card.appendChild(row);
+      });
+      const actions = document.createElement('div');
+      actions.className = 'manage-card-actions';
+      const saveBtn = document.createElement('button');
+      saveBtn.className = 'btn btn-green btn-small';
+      saveBtn.textContent = '💾 Sauver';
+      saveBtn.addEventListener('click', () => saveManageQuestion(i));
+      const cancelBtn = document.createElement('button');
+      cancelBtn.className = 'btn btn-dark btn-small';
+      cancelBtn.textContent = 'Annuler';
+      cancelBtn.addEventListener('click', () => { G.manageEditing = null; renderManageList(); });
+      actions.append(saveBtn, cancelBtn);
+      card.appendChild(actions);
+    } else {
+      const info = document.createElement('div');
+      info.className = 'manage-card-info';
+      info.textContent = q.question;
+      const meta = document.createElement('div');
+      meta.className = 'manage-card-meta';
+      if (G.manageTab === 'envoi') meta.textContent = 'Choix: ' + q.choix.join(', ') + ' | Bonne réponse: ' + q.bonneReponse;
+      else if (G.manageTab === 'cpc') meta.textContent = 'Intrus: ' + q.intrus + ' | Propositions: ' + q.propositions.length;
+      else meta.textContent = 'Réponse: ' + q.reponse;
+      const actions = document.createElement('div');
+      actions.className = 'manage-card-actions';
+      const editBtn = document.createElement('button');
+      editBtn.className = 'btn btn-small btn-blue';
+      editBtn.textContent = '✎';
+      editBtn.title = 'Modifier';
+      editBtn.addEventListener('click', () => { G.manageEditing = i; renderManageList(); renderManageForm(); });
+      const delBtn = document.createElement('button');
+      delBtn.className = 'btn btn-small btn-red';
+      delBtn.textContent = '✕';
+      delBtn.title = 'Supprimer';
+      delBtn.addEventListener('click', () => deleteManageQuestion(i));
+      actions.append(editBtn, delBtn);
+      card.append(info, meta, actions);
+    }
+
+    list.appendChild(card);
+  });
+}
+
+function getManageFormFields(data) {
+  const isEdit = !!data;
+  if (G.manageTab === 'envoi') {
+    const d = isEdit ? data : { question: '', choix: ['', ''], bonneReponse: '' };
+    return [
+      { key: 'question', label: 'Question', value: d.question },
+      { key: 'choix0', label: 'Choix A', value: d.choix[0] },
+      { key: 'choix1', label: 'Choix B', value: d.choix[1] },
+      { key: 'bonneReponse', label: 'Bonne réponse', value: d.bonneReponse },
+    ];
+  }
+  if (G.manageTab === 'cpc') {
+    const d = isEdit ? data : { question: '', propositions: ['','','','','','',''], intrus: '' };
+    return [
+      { key: 'question', label: 'Question', value: d.question },
+      ...d.propositions.map((v, i) => ({ key: 'p' + i, label: 'Proposition ' + (i + 1), value: v })),
+      { key: 'intrus', label: 'Intrus', value: d.intrus },
+    ];
+  }
+  const d = isEdit ? data : { question: '', reponse: '' };
+  return [
+    { key: 'question', label: 'Question', value: d.question },
+    { key: 'reponse', label: 'Réponse', value: d.reponse },
+  ];
+}
+
+function renderManageForm() {
+  const fields = D.manage.formFields;
+  const isEditing = G.manageEditing !== null && G.manageEditing < getManageBank().length;
+
+  D.manage.formTitle.textContent = isEditing ? 'Modifier la question' : 'Ajouter une question';
+  D.manage.addBtn.textContent = isEditing ? '💾 Enregistrer' : '➕ Ajouter';
+  D.manage.cancelBtn.style.display = isEditing ? 'inline-flex' : 'none';
+
+  fields.innerHTML = '';
+  const empty = G.manageEditing !== null && G.manageEditing < getManageBank().length
+    ? getManageBank()[G.manageEditing] : null;
+  const formFields = getManageFormFields(empty);
+
+  formFields.forEach(f => {
+    const row = document.createElement('div');
+    row.className = 'manage-field-row';
+    row.innerHTML = '<label>' + f.label + '</label>';
+    const inp = document.createElement('input');
+    inp.type = 'text';
+    inp.className = 'manage-input';
+    inp.value = f.value;
+    inp.dataset.field = f.key;
+    row.appendChild(inp);
+    fields.appendChild(row);
+  });
+}
+
+function collectManageForm() {
+  const inputs = D.manage.formFields.querySelectorAll('.manage-input');
+  const data = {};
+  inputs.forEach(inp => { data[inp.dataset.field] = inp.value; });
+  return data;
+}
+
+function addManageQuestion() {
+  const data = collectManageForm();
+  if (!data.question || !data.question.trim()) { err('La question est vide.'); return; }
+
+  if (G.manageTab === 'envoi') {
+    if (!data.choix0 || !data.choix1) { err('Les deux choix sont requis.'); return; }
+    if (!data.bonneReponse) { err('Indiquez la bonne réponse.'); return; }
+    if (data.bonneReponse !== data.choix0 && data.bonneReponse !== data.choix1) { err('La bonne réponse doit être l\'un des deux choix.'); return; }
+    getManageBank().push({ question: data.question, choix: [data.choix0, data.choix1], bonneReponse: data.bonneReponse });
+  } else if (G.manageTab === 'cpc') {
+    const props = [];
+    for (let i = 0; i < 7; i++) {
+      if (!data['p' + i]) { err('Toutes les propositions sont requises.'); return; }
+      props.push(data['p' + i]);
+    }
+    if (!data.intrus) { err('Indiquez l\'intrus.'); return; }
+    getManageBank().push({ question: data.question, propositions: props, intrus: data.intrus });
+  } else {
+    if (!data.reponse) { err('Indiquez la réponse.'); return; }
+    getManageBank().push({ question: data.question, reponse: data.reponse });
+  }
+
+  G.manageEditing = null;
+  renderManage();
+  ok('Question ajoutée !');
+}
+
+function saveManageQuestion(index) {
+  const data = collectManageForm();
+  if (!data.question || !data.question.trim()) { err('La question est vide.'); return; }
+
+  if (G.manageTab === 'envoi') {
+    if (!data.choix0 || !data.choix1) { err('Les deux choix sont requis.'); return; }
+    questionsCoupEnvoi[index] = { question: data.question, choix: [data.choix0, data.choix1], bonneReponse: data.bonneReponse };
+  } else if (G.manageTab === 'cpc') {
+    const props = [];
+    for (let i = 0; i < 7; i++) {
+      if (!data['p' + i]) { err('Toutes les propositions sont requises.'); return; }
+      props.push(data['p' + i]);
+    }
+    questionsCoupParCoup[index] = { question: data.question, propositions: props, intrus: data.intrus };
+  } else {
+    questionsCoupFatal[index] = { question: data.question, reponse: data.reponse };
+  }
+
+  G.manageEditing = null;
+  renderManage();
+  ok('Question mise à jour !');
+}
+
+function deleteManageQuestion(index) {
+  if (!confirm('Supprimer cette question ?')) return;
+  getManageBank().splice(index, 1);
+  if (G.manageEditing === index) G.manageEditing = null;
+  else if (G.manageEditing > index) G.manageEditing--;
+  renderManage();
+  ok('Question supprimée.');
+}
+
+document.querySelectorAll('.manage-tab').forEach(tab => {
+  tab.addEventListener('click', () => {
+    G.manageTab = tab.dataset.tab;
+    G.manageEditing = null;
+    renderManage();
+  });
+});
+
+D.manage.back.addEventListener('click', () => {
+  showScreen('home');
+  initHome();
+});
+
+D.manage.exp.addEventListener('click', exportQuestions);
+
+D.manage.addBtn.addEventListener('click', () => {
+  if (G.manageEditing !== null) {
+    saveManageQuestion(G.manageEditing);
+  } else {
+    addManageQuestion();
+  }
+});
+
+D.manage.cancelBtn.addEventListener('click', () => {
+  G.manageEditing = null;
+  renderManage();
+});
+
+if (D.home.manageBtn) D.home.manageBtn.addEventListener('click', showManage);
 
 // =============================================================
 // 13. DÉMARRAGE

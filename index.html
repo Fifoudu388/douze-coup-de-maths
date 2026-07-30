@@ -33,9 +33,10 @@
           <div id="player-names-container"></div>
           <button id="start-game-btn" class="btn btn-gold btn-large">Lancer la partie</button>
           <div class="question-io-bar">
-            <button id="export-btn" class="btn btn-small btn-dark">📤 Exporter les questions</button>
-            <button id="import-btn" class="btn btn-small btn-dark">📥 Importer des questions</button>
+            <button id="export-btn" class="btn btn-small btn-dark">📤 Exporter</button>
+            <button id="import-btn" class="btn btn-small btn-dark">📥 Importer</button>
             <input type="file" id="import-file" accept=".json" hidden>
+            <button id="manage-btn" class="btn btn-small btn-dark">⚙ Gérer</button>
           </div>
         </div>
       </div>
@@ -158,6 +159,40 @@
         <p class="victory-game-title">Les 12 Coups de Maths !</p>
         <div class="victory-stars bottom">★ ★ ★ ★ ★</div>
         <button id="victory-home-btn" class="btn btn-gold btn-large">Retour à l'accueil</button>
+      </div>
+    </div>
+
+    <!-- ÉCRAN DE GESTION DES QUESTIONS -->
+    <div id="manage-screen" class="screen">
+      <header class="manage-header">
+        <div class="header-left">
+          <button id="manage-back-btn" class="btn btn-small btn-dark">← Retour</button>
+        </div>
+        <div class="header-center">
+          <span class="game-badge">Gestion des questions</span>
+        </div>
+        <div class="header-right">
+          <button id="manage-export-btn" class="btn btn-small btn-gold">📤 Exporter</button>
+        </div>
+      </header>
+
+      <div id="manage-body">
+        <div class="manage-tabs">
+          <button class="manage-tab active" data-tab="envoi">Coup d'Envoi <span class="manage-count" id="mcount-envoi">0</span></button>
+          <button class="manage-tab" data-tab="cpc">Coup par Coup <span class="manage-count" id="mcount-cpc">0</span></button>
+          <button class="manage-tab" data-tab="fatal">Coup Fatal <span class="manage-count" id="mcount-fatal">0</span></button>
+        </div>
+
+        <div id="manage-list"></div>
+
+        <div class="manage-form" id="manage-form">
+          <h3 class="manage-form-title" id="manage-form-title">Ajouter une question</h3>
+          <div id="manage-form-fields" class="manage-form-fields"></div>
+          <div class="manage-form-actions">
+            <button id="manage-add-btn" class="btn btn-green">➕ Ajouter</button>
+            <button id="manage-cancel-btn" class="btn btn-dark" style="display:none">Annuler</button>
+          </div>
+        </div>
       </div>
     </div>
 
