@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Les 12 Coups de Maths</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div id="app">
+    <!-- ÉCRAN D'ACCUEIL -->
+    <div id="home-screen" class="screen active">
+      <div class="home-content">
+        <div class="title-block">
+          <div class="studio-badge">SPECTACLE MATHÉMATIQUE</div>
+          <h1 class="game-title">
+            <span class="title-star">★</span>
+            Les 12 Coups de Maths
+            <span class="title-star">★</span>
+          </h1>
+          <p class="subtitle">Le grand jeu mathématique</p>
+        </div>
+        <div class="setup-card">
+          <h2>Configuration des joueurs</h2>
+          <div class="player-count-control">
+            <label>Nombre de joueurs :</label>
+            <div class="count-input">
+              <button id="decrease-count" class="count-btn">−</button>
+              <span id="player-count">4</span>
+              <button id="increase-count" class="count-btn">+</button>
+            </div>
+          </div>
+          <div id="player-names-container"></div>
+          <button id="start-game-btn" class="btn btn-gold btn-large">Lancer la partie</button>
+          <div class="question-io-bar">
+            <button id="export-btn" class="btn btn-small btn-dark">📤 Exporter les questions</button>
+            <button id="import-btn" class="btn btn-small btn-dark">📥 Importer des questions</button>
+            <input type="file" id="import-file" accept=".json" hidden>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ÉCRAN DE JEU PRINCIPAL -->
+    <div id="game-screen" class="screen">
+      <header id="game-header">
+        <div class="header-left">
+          <h2 id="round-title">Coup d'Envoi</h2>
+        </div>
+        <div class="header-center">
+          <span class="game-badge">Les 12 Coups de Maths</span>
+        </div>
+        <div class="header-right">
+          <span id="players-remaining" class="players-count">Joueurs : 4</span>
+          <button id="spectator-toggle" class="btn btn-small btn-dark header-btn-spectator" title="Basculer mode public/présentateur">🎬</button>
+          <button id="fullscreen-btn" class="btn btn-small btn-dark" title="Plein écran">⛶</button>
+          <button id="reset-btn" class="btn btn-small btn-dark" title="Réinitialiser">↺</button>
+          <button id="home-btn" class="btn btn-small btn-dark" title="Accueil">⌂</button>
+        </div>
+      </header>
+
+      <section id="players-area">
+        <div id="players-cards"></div>
+      </section>
+
+      <!-- Tour du joueur actif -->
+      <div id="turn-banner">
+        <span id="turn-label">Au tour de :</span>
+        <span id="turn-player">—</span>
+      </div>
+
+      <section id="round-content">
+
+        <!-- COUP D'ENVOI -->
+        <div id="coup-envoi-view" class="round-view">
+          <div class="question-card">
+            <div class="question-header">
+              <span class="round-badge">Coup d'Envoi</span>
+              <span class="question-counter" id="envoi-counter">Question 1/15</span>
+            </div>
+            <p class="question-text" id="envoi-question">Question ici</p>
+            <div class="choices" id="envoi-choices">
+              <button class="choice-btn choice-a">A</button>
+              <button class="choice-btn choice-b">B</button>
+            </div>
+            <p class="keyboard-hint" id="envoi-hint"><kbd>A</kbd> <kbd>1</kbd> ou <kbd>B</kbd> <kbd>2</kbd> pour choisir</p>
+          </div>
+        </div>
+
+        <!-- COUP PAR COUP -->
+        <div id="coup-par-coup-view" class="round-view">
+          <div class="question-card">
+            <div class="question-header">
+              <span class="round-badge">Coup par Coup</span>
+              <span class="question-counter" id="cpc-counter">Question 1/15</span>
+            </div>
+            <p class="question-text" id="cpc-question">Question ici</p>
+            <div class="propositions" id="cpc-propositions"></div>
+            <p class="info-text" id="cpc-info">Choisissez une proposition. Attention à l'intrus !</p>
+            <p class="keyboard-hint" id="cpc-hint"><kbd>1</kbd> à <kbd>7</kbd> pour choisir une proposition</p>
+          </div>
+        </div>
+
+        <!-- COUP FATAL -->
+        <div id="coup-fatal-view" class="round-view">
+          <div class="fatal-players">
+            <div class="fatal-player-card" id="fatal-player-0">
+              <h3 class="fatal-player-name" id="fp0-name">Joueur 1</h3>
+              <div class="fatal-timer" id="fp0-timer">60</div>
+              <div class="fatal-indicator" id="fp0-active">En attente</div>
+            </div>
+            <div class="fatal-vs"><span class="vs-text">VS</span></div>
+            <div class="fatal-player-card" id="fatal-player-1">
+              <h3 class="fatal-player-name" id="fp1-name">Joueur 2</h3>
+              <div class="fatal-timer" id="fp1-timer">60</div>
+              <div class="fatal-indicator" id="fp1-active">En attente</div>
+            </div>
+          </div>
+          <!-- Zone de statut / message -->
+          <div id="fatal-status" class="fatal-status">Prêt ? Top avec la touche <kbd>T</kbd></div>
+          <!-- Raccourcis clavier -->
+          <div class="keyboard-help">
+            <span><kbd>T</kbd> Start / Pause</span>
+            <span><kbd>Y</kbd> Bonne réponse</span>
+            <span><kbd>N</kbd> Mauvaise réponse</span>
+          </div>
+        </div>
+
+      </section>
+    </div>
+
+    <!-- RÉSULTAT (pop-up animation) -->
+    <div id="result-overlay" class="result-overlay">
+      <div class="result-box" id="result-box">
+        <div class="result-icon" id="result-icon"></div>
+        <div class="result-text" id="result-text">Résultat</div>
+        <div class="result-sub" id="result-sub"></div>
+      </div>
+    </div>
+
+    <!-- TRANSITION -->
+    <div id="transition-overlay" class="overlay">
+      <div class="transition-content">
+        <h2 id="transition-title">Transition</h2>
+        <p id="transition-text">Texte</p>
+        <button id="transition-btn" class="btn btn-gold btn-large">Continuer</button>
+      </div>
+    </div>
+
+    <!-- VICTOIRE -->
+    <div id="victory-overlay" class="overlay">
+      <canvas id="confetti-canvas"></canvas>
+      <div class="victory-content">
+        <div class="victory-stars">★ ★ ★ ★ ★</div>
+        <h1 class="victory-title">🏆 BRAVO ! 🏆</h1>
+        <p class="victory-name" id="winner-name">Gagnant</p>
+        <p class="victory-subtitle">tu remportes</p>
+        <p class="victory-game-title">Les 12 Coups de Maths !</p>
+        <div class="victory-stars bottom">★ ★ ★ ★ ★</div>
+        <button id="victory-home-btn" class="btn btn-gold btn-large">Retour à l'accueil</button>
+      </div>
+    </div>
+
+    <!-- NOTIFICATION -->
+    <div id="notification" class="notification"></div>
+  </div>
+
+  <script src="script.js"></script>
+</body>
+</html>
