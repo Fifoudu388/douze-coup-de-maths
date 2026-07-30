@@ -1069,7 +1069,7 @@ function genInputs() {
 }
 
 D.home.dec.addEventListener('click', () => { if (playerCount > 4) { playerCount--; updCount(); genInputs(); } });
-D.home.inc.addEventListener('click', () => { if (playerCount < 20) { playerCount++; updCount(); genInputs(); } });
+D.home.inc.addEventListener('click', () => { if (playerCount < 24) { playerCount++; updCount(); genInputs(); } });
 
 D.home.start.addEventListener('click', () => {
   const inputs = D.home.names.querySelectorAll('.player-name-input');
